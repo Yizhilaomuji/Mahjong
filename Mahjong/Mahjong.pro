@@ -10,12 +10,16 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mahjonglogic.cpp \
-    trainingwidget.cpp
+    trainingwidget.cpp \
+    realtimeassistant.cpp \
+    opponentanalysis.cpp
 
 HEADERS += \
     mainwindow.h \
     mahjonglogic.h \
-    trainingwidget.h
+    trainingwidget.h \
+    realtimeassistant.h \
+    opponentanalysis.h
 
 FORMS += \
     mainwindow.ui

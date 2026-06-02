@@ -36,6 +36,9 @@ struct Tile {
 
 class MahjongLogic {
 public:
+    // 计算胡牌番数 (基础)
+    static int calculateFanTypes(const std::vector<Tile>& hand14);
+
     // 生成一套有意义的训练手牌 (保证必定存在可以听牌的打法)
     static std::vector<Tile> generateTrainingHand();
     

@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QTabWidget>
 #include "trainingwidget.h"
+#include "realtimeassistant.h"
+#include "opponentanalysis.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,8 +25,8 @@ private:
     Ui::MainWindow *ui;
     QTabWidget *tabWidget;
     TrainingWidget *trainingWidget;
-    QWidget *realTimeWidget;
-    QWidget *analysisWidget;
+    RealTimeAssistant *realTimeWidget;
+    OpponentAnalysis *analysisWidget;
     
     void setupUI();
 };

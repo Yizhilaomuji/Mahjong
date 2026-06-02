@@ -3,6 +3,37 @@
 #include <random>
 #include <chrono>
 
+int MahjongLogic::calculateFanTypes(const std::vector<Tile>& hand14) {
+    if (hand14.size() != 14) return 0;
+    
+    int fan = 1; // 基础平胡 1番
+    
+    // 检查清一色
+    bool qingyise = true;
+    TileSuit firstSuit = hand14[0].suit;
+    for (const auto& t : hand14) {
+        if (t.suit != firstSuit) {
+            qingyise = false;
+            break;
+        }
+    }
+    if (qingyise) fan *= 4; // 清一色 x4
+    
+    // 检查七对 (简单判断成双)
+    bool qidui = true;
+    auto sorted = hand14;
+    std::sort(sorted.begin(), sorted.end());
+    for (size_t i = 0; i < 14; i += 2) {
+        if (sorted[i].suit != sorted[i+1].suit || sorted[i].value != sorted[i+1].value) {
+            qidui = false; break;
+        }
+    }
+    if (qidui) fan *= 4; // 七对 x4
+    
+    // TODO: 对对胡（碰碰胡）、带幺九等判断
+    return fan;
+}
+
 std::vector<int> MahjongLogic::tilesToCounts(const std::vector<Tile>& tiles) {
     std::vector<int> counts(30, 0);
     for (const auto& t : tiles) {

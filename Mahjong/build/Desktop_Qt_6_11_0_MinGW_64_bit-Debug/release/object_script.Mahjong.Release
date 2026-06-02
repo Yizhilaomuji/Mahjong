@@ -1,0 +1,10 @@
+release/main.o
+release/mainwindow.o
+release/mahjonglogic.o
+release/trainingwidget.o
+release/realtimeassistant.o
+release/opponentanalysis.o
+release/moc_mainwindow.o
+release/moc_trainingwidget.o
+release/moc_realtimeassistant.o
+release/moc_opponentanalysis.o
