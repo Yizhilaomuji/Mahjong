@@ -41,18 +41,44 @@ public:
 
     // 生成一套有意义的训练手牌 (保证必定存在可以听牌的打法)
     static std::vector<Tile> generateTrainingHand();
-    
+
     // 给定14张牌，判断打出哪张牌能听什么牌
     // 返回值: 键为建议打出的牌，值为打出该牌后能听的牌列表
     static std::map<Tile, std::vector<Tile>> getDiscardSuggestions(const std::vector<Tile>& hand);
 
-private:
+    // 生成108张牌并洗牌
+    static std::vector<Tile> generateWall();
+
+    // 判断14张牌是否胡牌
+    static bool canWin(const std::vector<Tile>& hand14);
+
+    // 统计手牌中某花色的张数
+    static int countSuit(const std::vector<Tile>& hand, TileSuit suit);
+
+    // 判断某张牌在手牌中是否孤立 (同花色无 value±2 以内的其他牌)
+    static bool isIsolated(const std::vector<Tile>& hand, Tile tile);
+
+    // 判断手牌中是否包含某张牌 (value + suit 匹配)
+    static bool hasTile(const std::vector<Tile>& hand, Tile tile);
+
+    // 从手牌中移除一张匹配的牌，返回是否成功
+    static bool removeTile(std::vector<Tile>& hand, Tile tile);
+
     // 将牌组转换为整数统计数组，大小30 (0-9筒, 10-19条, 20-29万)
     static std::vector<int> tilesToCounts(const std::vector<Tile>& tiles);
-    // 递归判断当前牌是否胡牌
-    static bool isWinningHand(std::vector<int> counts, bool hasPair);
+
+    // 计算向听数 (0=听牌, 1=一向听, 2=二向听 ...)
+    static int calculateShanten(const std::vector<Tile>& hand);
+
     // 给定13张牌，返回所有能胡的牌
     static std::vector<Tile> getWaits(const std::vector<Tile>& hand13);
+
+    // 文本解析: "1筒 2万 3条" → Tile列表
+    static std::vector<Tile> parseTileList(const QString &input);
+
+private:
+    // 递归判断当前牌是否胡牌
+    static bool isWinningHand(std::vector<int> counts, bool hasPair);
 };
 
 #endif // MAHJONGLOGIC_H

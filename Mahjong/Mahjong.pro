@@ -12,14 +12,26 @@ SOURCES += \
     mahjonglogic.cpp \
     trainingwidget.cpp \
     realtimeassistant.cpp \
-    opponentanalysis.cpp
+    opponentanalysis.cpp \
+    gamengine.cpp \
+    aiplayer.cpp \
+    simulationwidget.cpp \
+    combatarenawidget.cpp \
+    battletrainingwidget.cpp \
+    videocapture.cpp
 
 HEADERS += \
     mainwindow.h \
     mahjonglogic.h \
     trainingwidget.h \
     realtimeassistant.h \
-    opponentanalysis.h
+    opponentanalysis.h \
+    gamengine.h \
+    aiplayer.h \
+    simulationwidget.h \
+    combatarenawidget.h \
+    battletrainingwidget.h \
+    videocapture.h
 
 FORMS += \
     mainwindow.ui

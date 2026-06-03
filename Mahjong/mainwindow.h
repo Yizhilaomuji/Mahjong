@@ -3,9 +3,8 @@
 
 #include <QMainWindow>
 #include <QTabWidget>
+#include "battletrainingwidget.h"
 #include "trainingwidget.h"
-#include "realtimeassistant.h"
-#include "opponentanalysis.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -24,10 +23,9 @@ public:
 private:
     Ui::MainWindow *ui;
     QTabWidget *tabWidget;
+    BattleTrainingWidget *battleTrainingWidget;
     TrainingWidget *trainingWidget;
-    RealTimeAssistant *realTimeWidget;
-    OpponentAnalysis *analysisWidget;
-    
+
     void setupUI();
 };
 #endif // MAINWINDOW_H
