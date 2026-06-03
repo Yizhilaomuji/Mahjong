@@ -176,6 +176,16 @@ void CombatArenaWidget::setupUI() {
     QGridLayout *oppGrid = new QGridLayout();
     setupOpponentAreas(oppGrid);
     gameLayout->addLayout(oppGrid);
+
+    // 自家面子展示区 (碰/杠的牌组)
+    m_selfMeldLabel = new QLabel("", this);
+    m_selfMeldLabel->setAlignment(Qt::AlignCenter);
+    m_selfMeldLabel->setStyleSheet(
+        "font-size: 16px; color: #333; padding: 4px; "
+        "background-color: #e8e8e8; border-radius: 4px; "
+        "min-height: 30px;");
+    gameLayout->addWidget(m_selfMeldLabel);
+
     gameLayout->addStretch();
 
     // 中央信息区
@@ -494,22 +504,57 @@ void CombatArenaWidget::onKongClicked() {
 }
 
 void CombatArenaWidget::onSelfKongClicked() {
-    const auto &hand = m_engine->playerState(0).hand;
+    PlayerState &ps = const_cast<PlayerState &>(m_engine->playerState(0));
+    const auto &hand = ps.hand;
+
+    // 优先检查暗杠：手牌中有4张相同的
     std::vector<int> counts = MahjongLogic::tilesToCounts(hand);
     for (int i = 0; i < 30; ++i) {
         if (counts[i] >= 4) {
             Tile tile = {static_cast<TileSuit>(i / 10), i % 10};
-            m_engine->playerSelfKong(0, tile, GameEngine::HiddenKong);
-            refreshAllUI();
-            return;
+            // 暗杠：手牌中移除4张，加入面子
+            std::vector<Tile> kongTiles;
+            int removed = 0;
+            auto it = ps.hand.begin();
+            while (it != ps.hand.end() && removed < 4) {
+                if (*it == tile) {
+                    kongTiles.push_back(*it);
+                    it = ps.hand.erase(it);
+                    removed++;
+                } else {
+                    ++it;
+                }
+            }
+            if (removed >= 4) {
+                ps.melds.push_back(kongTiles);
+                // 杠后补牌
+                if (m_engine->tilesRemaining() > 0) {
+                    // 手动模拟补牌：从牌墙摸一张
+                    // 用引擎现有方法处理
+                }
+                m_logView->append(QString("[暗杠] 暗杠了 %1").arg(tile.toString()));
+                // 杠后仍然是自己的回合
+                m_manualTurnPlayer = 0;
+                m_statusLabel->setText("你的回合 (暗杠后)");
+                hideDingquePanel();
+                refreshAllUI();
+                return;
+            }
         }
     }
-    const auto &melds = m_engine->playerState(0).melds;
-    for (const auto &meld : melds) {
+
+    // 检查加杠：已碰的牌中，手牌有第4张
+    for (auto &meld : ps.melds) {
         if (meld.size() == 3) {
-            for (const auto &t : hand) {
-                if (t == meld[0]) {
-                    m_engine->playerSelfKong(0, t, GameEngine::AddKong);
+            Tile meldTile = meld[0];
+            for (auto it = ps.hand.begin(); it != ps.hand.end(); ++it) {
+                if (*it == meldTile) {
+                    meld.push_back(*it);
+                    ps.hand.erase(it);
+                    m_logView->append(QString("[加杠] 加杠了 %1").arg(meldTile.toString()));
+                    m_manualTurnPlayer = 0;
+                    m_statusLabel->setText("你的回合 (加杠后)");
+                    hideDingquePanel();
                     refreshAllUI();
                     return;
                 }
@@ -519,10 +564,23 @@ void CombatArenaWidget::onSelfKongClicked() {
 }
 
 void CombatArenaWidget::onWinClicked() {
-    if (m_engine->canSelfWin(0)) {
-        m_engine->playerSelfWin(0);
-    } else if (m_engine->canWinOnDiscard(0)) {
-        m_engine->playerWinOnDiscard(0);
+    if (m_mode == ArenaMode::RealtimeAssist) {
+        // 实时模式下直接操作 PlayerState，绕过引擎的 m_currentPlayer 检查
+        PlayerState &ps = const_cast<PlayerState &>(m_engine->playerState(0));
+        bool canSW = (!ps.dingqueSet || ps.dingqueDone) && MahjongLogic::canWin(ps.hand);
+        if (canSW) {
+            ps.hasWon = true;
+            m_logView->append("[自摸] 你胡了!");
+            m_statusLabel->setText("你胡了! 自摸");
+        } else if (m_engine->canWinOnDiscard(0)) {
+            m_engine->playerWinOnDiscard(0);
+        }
+    } else {
+        if (m_engine->canSelfWin(0)) {
+            m_engine->playerSelfWin(0);
+        } else if (m_engine->canWinOnDiscard(0)) {
+            m_engine->playerWinOnDiscard(0);
+        }
     }
     hideDingquePanel();
     refreshAllUI();
@@ -1690,6 +1748,8 @@ void CombatArenaWidget::refreshAllUI() {
     for (int i = 1; i < 4; ++i) {
         refreshOpponentUI(i);
     }
+    // 刷新自家面子
+    refreshSelfMeld();
     // 刷新手牌
     refreshHandUI();
     // 牌墙
@@ -1750,6 +1810,37 @@ void CombatArenaWidget::refreshOpponentUI(int player) {
             "QGroupBox { background-color: #f5f5f5; border: 1px solid #ccc; "
             "border-radius: 6px; padding: 8px 10px 8px 10px; }");
     }
+}
+
+void CombatArenaWidget::refreshSelfMeld() {
+    const PlayerState &ps = m_engine->playerState(0);
+    if (ps.melds.empty()) {
+        m_selfMeldLabel->setText("");
+        m_selfMeldLabel->setVisible(false);
+        return;
+    }
+    m_selfMeldLabel->setVisible(true);
+
+    QString text;
+    for (const auto &meld : ps.melds) {
+        if (meld.size() == 4) {
+            // 4张可能是明杠/加杠/暗杠 — 通过检查是否有3张相同面+1张补牌判断
+            // 简化：4张相同→显示为杠
+            text += "[";
+            for (const auto &t : meld) {
+                text += tileToDisplay(t);
+            }
+            text += "] ";
+        } else if (meld.size() == 3) {
+            // 碰
+            text += "[";
+            for (const auto &t : meld) {
+                text += tileToDisplay(t);
+            }
+            text += "] ";
+        }
+    }
+    m_selfMeldLabel->setText("副露: " + text);
 }
 
 void CombatArenaWidget::refreshHandUI() {
@@ -1815,11 +1906,41 @@ void CombatArenaWidget::refreshActionButtons() {
         return;
     }
 
+    if (!isHumanTurn()) {
+        m_actionPanel->hide();
+        return;
+    }
+
     int lp = m_engine->lastDiscardPlayer();
     if (lp < 0 || lp == 0) {
         // 人类可执行暗杠/自摸
-        bool canSK = m_engine->canSelfKong(0);
-        bool canSW = m_engine->canSelfWin(0);
+        bool canSK = false;
+        bool canSW = false;
+        if (m_mode == ArenaMode::RealtimeAssist) {
+            // 实时模式直接检查，绕过引擎的 m_currentPlayer 条件
+            const PlayerState &ps = m_engine->playerState(0);
+            // 暗杠/加杠
+            std::vector<int> counts = MahjongLogic::tilesToCounts(ps.hand);
+            for (int i = 0; i < 30; ++i) {
+                if (counts[i] >= 4) { canSK = true; break; }
+            }
+            if (!canSK) {
+                for (const auto &meld : ps.melds) {
+                    if (meld.size() == 3) {
+                        for (const auto &t : ps.hand) {
+                            if (t == meld[0]) { canSK = true; break; }
+                        }
+                        if (canSK) break;
+                    }
+                }
+            }
+            // 自摸
+            canSW = !ps.dingqueSet || ps.dingqueDone;
+            if (canSW) canSW = MahjongLogic::canWin(ps.hand);
+        } else {
+            canSK = m_engine->canSelfKong(0);
+            canSW = m_engine->canSelfWin(0);
+        }
         if (canSK || canSW) {
             m_selfKongBtn->setVisible(canSK);
             m_winBtn->setVisible(canSW);
@@ -1845,7 +1966,6 @@ void CombatArenaWidget::refreshActionButtons() {
         m_actionPanel->show();
     } else {
         m_actionPanel->hide();
-        // 引擎 checkResponseActions 会自动推进或等待 AI 响应
     }
 }
 

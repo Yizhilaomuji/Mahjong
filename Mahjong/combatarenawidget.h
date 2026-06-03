@@ -106,6 +106,8 @@ private:
     QLabel *m_oppDiscardLabels[4];
     QLabel *m_oppMeldLabels[4];
     QLabel *m_oppDingqueLabels[4];
+    // 自家面子展示
+    QLabel *m_selfMeldLabel;
     QPushButton *m_oppPeekButtons[4];
     // 中央信息
     QLabel *m_lastDiscardLabel;
@@ -146,6 +148,7 @@ private:
     QGroupBox *createOpponentBox(int seatIndex);
     void refreshAllUI();
     void refreshOpponentUI(int seatIndex);
+    void refreshSelfMeld();
     void refreshHandUI();
     void refreshActionButtons();
     void refreshSuggestions();
